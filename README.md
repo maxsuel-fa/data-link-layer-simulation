@@ -10,3 +10,10 @@ This is a simulation of the data link layer made for the college subject "SCC064
 
 # Instalation and Running
 
+The application was *only* tested in a desktop running the Fedora Linux distribution.
+To run such aplication, type the folowing command:
+
+    make
+
+The make command will compile and run the application.
+
