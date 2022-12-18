@@ -1,12 +1,50 @@
+#include <iostream>
+#include <bitset>
+#include <algorithm>
+
 #include "../../include/data_link_layer.hpp"
 #include "../../include/constants.hpp"
-
-DLL::DLL(const std::string& id) : id_ { id } {}
+#include "../../include/utils.hpp"
+#include "../../include/transmission_medium.hpp"
 
 void DLL::send(std::vector<bool>& frame)
 {
+    utils::fancy_box_print("Trasmitter Data Link Layer");
+    std::cout << "Adding an Integrity Checker to the Frame..."
+              << std::endl
+              << std::endl;
+
     add_checker(frame);
-    transport_layer.send(frame);
+
+    TransmissionMedium::send(frame);
+}
+
+void DLL::receive(std::vector<bool>& frame)
+{
+    utils::fancy_box_print("Receiver Data Link Layer");
+    std::cout << "Checking the Frame Integrity..."
+              << std::endl;
+
+    bool has_error(false);
+    switch (consts::checker_type)
+    {
+    case consts::even_parity:
+        has_error = check_parity_bit(frame, true);
+        break;
+    case consts::odd_parity:
+        has_error = check_parity_bit(frame, false);
+        break;
+    case consts::crc_check:
+        has_error = crc32_check(frame);
+        break;
+    }
+
+    if (has_error)
+    {
+        std::cerr << "Error Was Detected in the Received Message"
+                  << std::endl;
+    }
+    ApplicationLayer::receive(frame);
 }
 
 void DLL::add_checker(std::vector<bool>& frame)
@@ -14,7 +52,7 @@ void DLL::add_checker(std::vector<bool>& frame)
     switch (consts::checker_type)
     {
     case consts::even_parity:
-        add_even_parity_checkbit(frame);
+        add_parity_checkbit(frame, true);
         break;
     case consts::odd_parity:
         add_parity_checkbit(frame, false);
@@ -26,7 +64,7 @@ void DLL::add_checker(std::vector<bool>& frame)
 }
 
 void DLL::add_parity_checkbit(std::vector<bool>& frame,
-                              const bool& even_parity = true)
+                              const bool& even_parity)
 {
     auto count(std::count(frame.begin(), frame.end(), true));
     frame.push_back((count % 2 == 0) ^ even_parity);
@@ -55,7 +93,7 @@ void DLL::add_crc32_check(std::vector<bool>& frame)
             // to get the modulo two division
             for (size_t j = 0; j < crc32_pol.size(); ++j)
             {
-                remainder[i + j] ^= crc32_pol[j];
+                remainder[i + j] = remainder[i + j] ^ crc32_pol[j];
             }
         }
         remainder[i] = frame[i];
@@ -66,11 +104,12 @@ void DLL::add_crc32_check(std::vector<bool>& frame)
     frame = remainder;
 }
 
-bool DLL::check_parity_bit(const std::vector<bool>& frame,
-                           const bool& even_parity = true)
+bool DLL::check_parity_bit(std::vector<bool>& frame,
+                           const bool& even_parity)
 {
     auto count(std::count(frame.begin(), frame.end(), true));
-    return !((count % 2 == 0) ^ even_parity)
+    frame.pop_back();
+    return ((count % 2 == 0) ^ even_parity);
 }
 
 bool DLL::crc32_check(std::vector<bool>& frame)
@@ -86,7 +125,8 @@ bool DLL::crc32_check(std::vector<bool>& frame)
         1, 1, 0, 1, 1, 0, 1, 1, 1
     };
 
-    std::vector<bool> remainder{frame};
+    std::vector<bool> remainder(frame.begin(), frame.end() - 32);
+    remainder.resize(remainder.size() + 32);
     for (size_t i = 0; i < remainder.size() - 32; ++i)
     {
         if (remainder[i])
@@ -95,16 +135,18 @@ bool DLL::crc32_check(std::vector<bool>& frame)
             // to get the modulo two division
             for (size_t j = 0; j < crc32_pol.size(); ++j)
             {
-                remainder[i + j] ^= crc32_pol[j];
+                remainder[i + j] = remainder[i + j] ^ crc32_pol[j];
             }
         }
         remainder[i] = frame[i];
     }
 
     bool has_error(false);
-    for(auto bit : remainder)
-        if(bit)
-            has_error = bit;
+    for (size_t i = 0; i < frame.size(); ++i)
+    {
+        has_error = frame[i] != remainder[i];
+        if(has_error) break;
+    }
     frame.clear();
     frame.insert(frame.begin(), remainder.begin(), remainder.end() - 32);
     frame.resize(remainder.size() - 32);

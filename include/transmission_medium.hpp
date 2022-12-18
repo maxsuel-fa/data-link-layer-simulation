@@ -6,33 +6,18 @@
 class TransmissionMedium
 {
 public:
-    /**
-     * @brief Constructs a transmission medium w/ the error proneness given by
-     * likelihood
-     * @param error_likelihood The likelihood of this transmission medium to
-     * commit an error
-     */
-    TransmissionMedium(int error_likelihood);
-
-    /**
-     * @brief Receives a frame coming from the transmitter transport layer
-     * @param ttl The transmitter transport layer, responsible for sending the
-     * message to this transmission medium
-     */
-    std::vector<bool> receive(const TransportLayer& ttl);
+    TransmissionMedium(void) = default;
 
     /**
      * @brief Send a frame to the receiver transport layer
      * @param frame The frame to be sent
-     * @param rtl The receiver transport layer
      */
-    void send(const std::vector<bool>& frame, const TransportLayer& rtl);
+    static void send(std::vector<bool>& frame);
 
     /**
      * @brief Disturbs some bit of the frame according to the likelihood
      * @param frame The frame of bits to be disturbed
+     * @param error_likelihood The error likelihood
      */
-    void disturb(std::vector<bool>& frame);
-private:
-    int error_likelihood_;
+    static void disturb(std::vector<bool>& frame, const int& error_likelihood);
 };

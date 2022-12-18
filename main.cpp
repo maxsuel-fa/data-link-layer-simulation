@@ -1,8 +1,7 @@
-#include "include/application_layer.hpp"
-
-
+#include "include/simulation.hpp"
 
 int main(void)
 {
+    Simulation::run();
     return 0;
 }
