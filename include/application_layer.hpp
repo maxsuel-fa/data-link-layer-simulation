@@ -21,7 +21,7 @@ public:
      * @brief Given a message, transmits it to the data link layer
      * @param message The message to be transmited
      */ 
-    void send(const std::string& message);
+    void send(const std::string& message, const DLL& dll);
 
     /**
      * @brief Interface between the application and the link layers responsabel
